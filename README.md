@@ -12,7 +12,7 @@ Repstation is a generalized onchain reputation protocol. Built as a thin contrac
 - Making any attestation increases the attester’s rep, scaled by the age of the attestation target account
 - Rep increases from receiving positive attestations, scaled by the rep of the attester
 - Rep decreases from receiving negative attestations, scaled by the rep of the attester
-- Frontend app ("OurSpace")
+- Frontend app ("[OurSpace](https://github.com/gigamesh/ourspace)")
     1. Lets you sign in
     2. Shows your rep score
     3. Enables setting profile data (via making attestations directly to EAS)
@@ -22,15 +22,13 @@ Repstation is a generalized onchain reputation protocol. Built as a thin contrac
 
 ## Contracts
 
-*Repstation is in alpha and currently has no decentralized governance. The description of RepstationGov.sol below is a proposed design.*
-
 ### Repstation.sol
 
 - Upgradeable reputation registry
 - Accepts attestations, calculates rep, and passes the attestations to the EAS
 
 ### RepstationGov.sol
-
+*This is a proposed governance design. V1 of Repstation will likely have no decentralized governance.*
 - Owner of Repstation.sol
 - Only accounts with rep can vote
 - Uses a quadratic voting system to counterbalance older accounts having more rep than newer accounts
