@@ -1,2 +1,3 @@
 oz-upgradeable/=./lib/openzeppelin-contracts-upgradeable/contracts/
 solady/=./lib/solady/src/
+eas/=./lib/eas-contracts/contracts/
