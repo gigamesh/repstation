@@ -8,17 +8,11 @@ Repstation is a generalized onchain reputation protocol. Built as a thin contrac
 
 - Each account is assigned a reputation score (hereon referred to as ”rep”)
 - Each attestation is simply positive or negative (up or down vote)
-- When an account’s rep is initialized, the time is recorded so the age of each account can be used for reputation calculations.
+- When an account’s rep is initialized, the time is recorded so the age of each account can be used for rep calculations.
 - Making any attestation increases the attester’s rep, scaled by the age of the attestation target account
 - Rep increases from receiving positive attestations, scaled by the rep of the attester
 - Rep decreases from receiving negative attestations, scaled by the rep of the attester
 - Frontend app ("[OurSpace](https://github.com/gigamesh/ourspace)")
-    1. Lets you sign in
-    2. Shows your rep score
-    3. Enables setting profile data (via making attestations directly to EAS)
-    4. Enables “friending” another account (positive attestation)
-    5. Shows who has friended you and who you’ve friended
-    6. Let’s you see your “top 8” ala myspace, ranked by their rep.
 
 ## Contracts
 
