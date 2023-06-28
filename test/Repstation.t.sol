@@ -19,9 +19,13 @@ contract CounterTest is Test {
 
     // Returns correct rep for given accounts
 
-    // Returns correct attestationCount for given accounts
-
     // Returns correct createdAt for given accounts
 
     // Correctly calculates decayed rep
+
+    // Users can make attestations
+
+    // Returns correct attestationCount
+
+    // Users can't attest if they're not registered
 }
