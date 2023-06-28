@@ -1,19 +1,24 @@
 # Repstation
 
-Repstation is an onchain reputation protocol. Built as a custom [Ethereum Attestation Service](https://attest.sh/) schema resolver, it stores a reputation score ("rep") for each account that is updated via up/down vote attestations made by other accounts. 
+Repstation is an onchain reputation protocol. Built as a custom [Ethereum Attestation Service](https://attest.sh/) schema resolver, it stores a reputation score ("rep") for each account that is updated via up or down vote attestations made by other accounts. 
 
-The system is bootstrapped by a genesis set of users who are trusted to only control one account in the genesis set of accounts (ex: [OP Citizen House](https://community.optimism.io/docs/governance/citizens-house/) badgeholders). To incentivize participation and limit sybil attacks, rep decays over time at a rate determined by how often an account makes attestations. The parameters for calculating rep can be changed via a governance process, with voting power scaled by each voter's rep. 
+The system is bootstrapped by a reputable set of unique account owners (ex: [OP Citizen House](https://community.optimism.io/docs/governance/citizens-house/) badgeholders). To incentivize participation and limit sybil attacks, rep decays over time at a rate determined by how often an account makes attestations. The parameters for calculating rep can be changed via a governance process, with voting power scaled by each voter's rep. 
 
 It is initially being developed for use with the [Optimism Attestation Station](https://community.optimism.io/docs/identity/atst-v1/), but can be deployed to any chain where EAS has been deployed.
 
 ## Rationale
-Sybil-resistant, decentralized reputation systems are a notoriously difficult challenge. Rather than attempting to be a perfect solution, Repstation can be thought more as an experiment which leverages existing social capital to boostrap a reputation network onchain. It is effectively a DAO whose sole function is to steward the reputation of its members.
+Sybil-resistant, decentralized reputation systems are a notoriously difficult challenge. Historically, the most successful approaches have managed it off chain via a trusted, centralized 3rd party (ex: [Gitcoin Passport](https://passport.gitcoin.co/)). More recently, zk circuits are being used to validate claims produced by trusted off-chain entities (ex: [Clique](https://clique.social/)).
 
-Membership in Repstation is more accessible and fluid than a traditional DAO. It doesn't require buying a token or a vote by existing members. It just requires you know an existing member who thinks you're worthy of a positive attestation.
+The problem with both of those approaches is the reputation of each account is only as good as the latest snapshot, and they rely on centralized authorities (ex: Google, Github, Twitter, etc).
 
-Another key feature of Repstation is any social group can come together to deploy their own instance with any set of parameters for calculating reputation. This allows for natural selection to determine the strongest communities. So governance can happen through voice or exit. If any Repstation instance grows large enough, it is conceivable network effects will take hold as other protocols will find value in leveraging the reputation signal attached to its members. 
+Repstation's approach is to leverage social capital to bootstrap a reputation network onchain. It is effectively a DAO whose sole function is to steward the reputation of its members. It is founded on the belief that our most valuable assets are time and social capital.
+
+Key features:
+- Unlike traditional DAOs, membership doesn't require buying a token or a vote by existing members. It only requires you know an existing member who thinks you're worthy of an up vote (positive attestation).
+- Any social group can deploy their own instance of Repstation with any set of initial parameters for calculating rep. This allows for natural selection to determine the strongest communities. If any Repstation instance grows large enough, it is conceivable network effects will take hold as other protocols will find value in leveraging the reputation of its members. And if any conflicts arise, the community can always fork the protocol and start anew.
 
 ## Overview
+*These values are in flux and will be determined by agent modeling.*
 - Rep ranges between 0 and 1000 (capped to prevent infinite inflation)
 - An initial set of accounts are given 1000 rep.
 - Rep decays at a default rate of 1% per day, but the [decay rate decreases exponentially](https://www.desmos.com/calculator/05ddk3db3b) the more freqently an account is making attestations.
@@ -43,7 +48,9 @@ Another key feature of Repstation is any social group can come together to deplo
 - [ ] RepstationGov.sol & tests
 - [ ] Add governance to frontend.
 
-## Questions:
+---
+## R&D:
 - Should the quorum threshold be adjustable by governance?
-- Should rep be transferable? 
-- Can reputation be shared across multiple chains?
+- Is there a way to make rep transferable (e.g. in the event that a member's wallet is compromised) in a way that doesn't encourage purchasing of rep & sybil attacks?
+- Can Repstation be multichain?
+- Ideally, attestations would be private so users aren't discouraged from making negative attestations. A possible way achieving this might bre to use a trusted relayer that accepts attestations and submits them to the chain in batches, hiding the identity of the attester. This would require a way to verify the relayer is not submitting false attestations.
