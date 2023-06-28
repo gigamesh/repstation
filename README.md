@@ -12,14 +12,12 @@ A key feature of Repstation is any social group can come together to deploy thei
 Membership in Repstation is more accessible and fluid than a traditional DAO. It doesn't require buying a token or a vote by existing members. It just requires you know an existing member who thinks you're worthy of a positive attestation.
 
 ## Overview
-
-- A set of genesis accounts are each assigned a reputation score (`rep`).
-- Attestations can be made by a simple up or down vote on any target account.
-- When an account is initialized, the time is recorded.
-- Rep decays over time, and the decay rate increases as the account ages.
+- Rep ranges between 0 and 1000.
+- An initial set of accounts are given 1000 rep. For the first iteration, this will be all ENS names.
+- Rep decays over time. To incentivize active participation, the decay rate decreases the more freqently an account makes attestations.
+- Attestations are a simple up or down vote on any target account.
 - Rep increases from receiving positive attestations, scaled by the rep of the attester.
 - Rep decreases from receiving negative attestations, scaled by the rep of the attester.
-- Rep cannot go below zero.
 
 ## Contracts
 
@@ -31,22 +29,19 @@ Membership in Repstation is more accessible and fluid than a traditional DAO. It
 
 ### RepstationGov.sol
 - Owner of Repstation.sol
-- Only accounts with rep can vote
-- Uses quadratic voting to counterbalance older accounts having more rep than newer accounts
-- Anyone with rep can make a proposal, but proposals require a quorum of TBD% accounts to vote in order for the election to be considered valid.
+- Vote weight is scaled by rep
+- Anyone with rep can make a proposal, but a quorum of TBD% of accounts is required to vote in order for the election to be considered valid.
 
 ## Roadmap
-1. Write contracts & tests
-2. Build [frontend](https://github.com/gigamesh/ourspace) that demonstrates Repstation's features.
-3. Assemble initial community of genesis accounts.
-4. Deploy to Optimism goerli.
-5. Deploy to mainnet (after [AttestationStation V1](https://community.optimism.io/docs/identity/atst-v1/) is deployed on mainnet).
+- [ ] Contracts & tests
+- [ ] Agent modeling to determine optimal parameters
+- [ ] [Frontend](https://github.com/gigamesh/ourspace) that enables users to flex their social capital.
+- [ ] Deploy to Optimism goerli.
+- [ ] Deploy to mainnet (after [AttestationStation V1](https://community.optimism.io/docs/identity/atst-v1/) is deployed on mainnet).
+- [ ] Add governance to frontend.
+- [ ] Frontend for deploying new instances of Repstation.
 
 ## Questions:
-
-- Do the initial parameters for calculating rep comport with prevailing knowledge of reputation systems (ex: EigenTrust)?
 - Should the quorum threshold be adjustable by governance?
-- Should Repstation.sol be immutable?
 - Should rep be transferable? 
-- Other sybil attack vectors?
 - Can reputation be shared across multiple chains?

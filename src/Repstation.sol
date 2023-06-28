@@ -5,44 +5,61 @@ import {IEAS, Attestation} from "eas/IEAS.sol";
 import {BaseResolver} from "./BaseResolver.sol";
 
 /**
+TODOs:
+- Determine age decay function
+- 
+ */
+
+/**
  * @title Repstation
  * @author @gigamesh
  * @notice An onchain reputation system built as an attestation resolver in the Ethereum Attestation Service
  */
 contract Repstation is BaseResolver {
     struct Account {
-        uint256 rep;
+        uint32 rep;
+        uint32 attestationCount;
         uint32 createdAt;
     }
 
-    bytes32 public attestationSchemaId;
+    error AttesterNotRegistered();
 
-    mapping(address => Account) public accounts;
-
-    function initialize(address _eas, bytes32 _attestationSchemaId) public {
-        _initialize(_eas);
-
-        attestationSchemaId = _attestationSchemaId;
-    }
+    mapping(address => Account) private accounts;
 
     function onAttest(
         Attestation calldata attestation,
-        uint256 value
+        uint256 /* value */
     ) internal override returns (bool) {
-        /* TODO: 
-            - Calculate rep & update Account of attester/sender 
-            - Calculate rep & update Account of attested/recipient
-        */
+        Account storage attester = accounts[attestation.attester];
+        Account storage attested = accounts[attestation.recipient];
+
+        // Only registered attestors can attest
+        if (attester.createdAt == 0) {
+            revert AttesterNotRegistered();
+        }
+
+        // Initialize Account of attested if this is their first attestation
+        if (attested.createdAt == 0) {
+            attested.createdAt = uint32(block.timestamp);
+        }
+
+        // Calculate rep & update Account of attested/recipient
+        // uint256 attestorRep = accounts[attestation.attester].rep;
+
+        // Increment attester's attestationCount
+        attester.attestationCount = attester.attestationCount + 1;
+
+        return true;
     }
 
-    function onRevoke(
-        Attestation calldata attestation,
-        uint256 value
-    ) internal override returns (bool) {
-        // TODO
-    }
+    /**
+     * @dev The current rep of an account.
+     * @param account The address of the target account.
+     */
+    function rep(address account) public view returns (uint32) {
+        uint256 attestationFrequency = accounts[account].attestationCount /
+            (block.timestamp - uint256(accounts[account].createdAt));
 
-    function updateSchema(bytes32 _attestationSchemaId) public onlyOwner {
-        attestationSchemaId = _attestationSchemaId;
+        // return accounts[account].rep + uint32(attestationFrequency);
     }
 }
