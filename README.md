@@ -1,11 +1,11 @@
 # Repstation
 
-Repstation is a simple onchain reputation protocol. Built as a custom [Ethereum Attestation Service](https://attest.sh/) schema resolver, it stores a reputation score for each account that is updated via up/down vote attestations made by other accounts. The system is bootstrapped by a genesis set of accounts and the parameters for updating reputation can be adjusted via a governance process. 
+Repstation is an onchain reputation protocol. Built as a custom [Ethereum Attestation Service](https://attest.sh/) schema resolver, it stores a reputation score for each account that is updated via up/down vote attestations made by other accounts. The system is bootstrapped by a genesis set of trustworthy accounts (ex: [OP Citizen House](https://community.optimism.io/docs/governance/citizens-house/) badgeholders) and the parameters for updating reputation can be adjusted via a governance process. 
 
-It will initially be developed for use with the [Optimism Attestation Station](https://community.optimism.io/docs/identity/atst-v1/), but can be deployed to any chain where EAS has been deployed.
+It is initially being developed for use with the [Optimism Attestation Station](https://community.optimism.io/docs/identity/atst-v1/), but can be deployed to any chain where EAS has been deployed.
 
 ## Rationale
-Sybil-resistant reputation systems are a notoriously difficult challenge that developers have been tackling in a multitude of ways for many years. Rather than attempting to be a universal, ungameable solution, Repstation can be thought more as an experiment which leverages existing social relationships. It is effectively a DAO whose primary function is to provide quantified social capital.
+Sybil-resistant reputation systems are a notoriously difficult challenge that developers have been tackling in a multitude of ways for many years. Rather than attempting to be a universal, ungameable solution, Repstation can be thought more as an experiment which leverages existing social capital. It is effectively a DAO whose sole function is to steward the reputation of its members.
 
 A key feature of Repstation is any social group can come together to deploy their own instance with any set of parameters for calculating reputation. This allows for natural selection to determine the strongest communities. If any grow large enough, it is conceivable network effects will take hold as other protocols will find value in leveraging the reputation signal attached to its members. 
 
@@ -13,7 +13,7 @@ Membership in Repstation is more accessible and fluid than a traditional DAO. It
 
 ## Overview
 - Rep ranges between 0 and 1000.
-- An initial set of accounts are given 1000 rep. For the first iteration, this will be all ENS names.
+- An initial set of accounts are given 1000 rep.
 - Rep decays over time. To incentivize active participation, the decay rate decreases the more freqently an account makes attestations.
 - Attestations are a simple up or down vote on any target account.
 - Rep increases from receiving positive attestations, scaled by the rep of the attester.

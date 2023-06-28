@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import {IEAS, Attestation} from "eas/IEAS.sol";
+import {Attestation} from "eas/IEAS.sol";
 import {BaseResolver} from "./BaseResolver.sol";
 
 /**

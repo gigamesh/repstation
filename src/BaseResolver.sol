@@ -2,7 +2,6 @@
 
 pragma solidity 0.8.19;
 
-// import {Ownable} from "solady/auth/Ownable.sol";
 import {IEAS, Attestation} from "eas/IEAS.sol";
 import {InvalidEAS, uncheckedInc} from "eas/Common.sol";
 import {ISchemaResolver} from "eas/resolver/ISchemaResolver.sol";
