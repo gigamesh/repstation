@@ -7,7 +7,7 @@ The system is bootstrapped by a reputable set of unique account owners (ex: [OP 
 It is initially being developed for use with the [Optimism Attestation Station](https://community.optimism.io/docs/identity/atst-v1/), but can be deployed to any chain where EAS has been deployed.
 
 ## Rationale
-Sybil-resistant, decentralized reputation systems are a notoriously difficult challenge. Historically, the most successful approaches have managed it off chain via a trusted, centralized 3rd party (ex: [Gitcoin Passport](https://passport.gitcoin.co/)). More recently, zk circuits are being used to validate claims produced by trusted off-chain entities (ex: [Clique](https://clique.social/)).
+Sybil-resistant reputation protocols are a notoriously difficult challenge. Historically, the most successful approaches have managed it off chain via a trusted, centralized 3rd party (ex: [Gitcoin Passport](https://passport.gitcoin.co/)). More recently, zk circuits are being used to validate claims produced by trusted off-chain entities (ex: [Clique](https://clique.social/)).
 
 The problem with both of those approaches is the reputation of each account is only as good as the latest snapshot, and they rely on centralized authorities (ex: Google, Github, Twitter, etc).
 
