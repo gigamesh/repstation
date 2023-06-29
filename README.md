@@ -16,9 +16,9 @@ Key features:
 - Any social group can deploy their own instance of Repstation with any set of initial parameters for calculating rep. This allows for natural selection to determine the strongest communities. If any Repstation instance grows large enough, it is conceivable network effects will take hold as other protocols will find value in leveraging the reputation of its members. And if any conflicts arise, the community can always fork the protocol and start anew.
 
 ## Overview
-*These values are in flux and will be determined by agent modeling.*
+*Parameters below are provisional. Final values will be ideally determined by agent modeling.*
 - Rep ranges between 0 and 1000 (capped to prevent infinite inflation)
-- An initial set of accounts are given 1000 rep.
+- The set of genesis accounts start with 1000 rep.
 - Rep decays at a default rate of 1% per day, but the [decay rate decreases exponentially](https://www.desmos.com/calculator/05ddk3db3b) the more freqently an account is making attestations.
 - Attestations are a simple up or down vote on any target account.
 - Rep increases from receiving positive attestations, scaled by the rep of the attester.
