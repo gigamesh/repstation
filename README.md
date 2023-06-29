@@ -7,11 +7,9 @@ The system is bootstrapped by a reputable set of unique account owners (ex: [OP 
 It is initially being developed for use with the [Optimism Attestation Station](https://community.optimism.io/docs/identity/atst-v1/), but can be deployed to any chain where EAS has been deployed.
 
 ## Rationale
-Sybil-resistant reputation protocols are a notoriously difficult challenge. Historically, the most successful approaches have managed it off chain via a trusted, centralized 3rd party (ex: [Gitcoin Passport](https://passport.gitcoin.co/)). More recently, zk circuits are being used to validate claims produced by trusted off-chain entities (ex: [Clique](https://clique.social/)).
+Sybil-resistant reputation protocols are a notoriously difficult challenge. Historically, the most successful approaches have managed it off chain via a trusted, centralized 3rd party (ex: [Gitcoin Passport](https://passport.gitcoin.co/)). More recently, zk circuits are being used to validate claims produced by trusted off-chain entities (ex: [Clique](https://clique.social/)). A problem with both approaches is the reputation of each account is only as good as the latest snapshot, and they rely on centralized authorities (ex: Google, Github, Twitter, etc).
 
-The problem with both of those approaches is the reputation of each account is only as good as the latest snapshot, and they rely on centralized authorities (ex: Google, Github, Twitter, etc).
-
-Repstation's approach is to leverage social capital to bootstrap a reputation network onchain. It is effectively a DAO whose sole function is to steward the reputation of its members.
+Repstation's approach is to leverage existing social capital to bootstrap a reputation network onchain. It is effectively a DAO whose sole function is to steward the reputation of its members.
 
 Key features:
 - Unlike traditional DAOs, membership doesn't require buying a token or a vote by existing members. It only requires you know an existing member who thinks you're worthy of an up vote (positive attestation).
