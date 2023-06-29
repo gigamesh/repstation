@@ -28,4 +28,6 @@ contract CounterTest is Test {
     // Returns correct attestationCount
 
     // Users can't attest if they're not registered
+
+    // Users can't make attestations about themselves
 }

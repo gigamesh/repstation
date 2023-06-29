@@ -25,6 +25,7 @@ Key features:
 - Attestations are a simple up or down vote on any target account.
 - Rep increases from receiving positive attestations, scaled by the rep of the attester.
 - Rep decreases from receiving negative attestations, scaled by the rep of the attester.
+- Accounts can't make attestations about their own address.
 
 ## Contracts
 
