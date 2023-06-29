@@ -35,6 +35,7 @@ Key features:
 
 ### RepstationGov.sol
 - Owner of Repstation.sol
+- Implementation of [OpenZeppelin Governor](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/governance/Governor.sol) for compatibility with existing tooling & UIs (subject to change)
 - Vote weight is scaled by rep
 - Anyone with rep can make a proposal, but a quorum of TBD% of accounts is required to vote in order for the election to be considered valid.
 
