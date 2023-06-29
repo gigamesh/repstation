@@ -11,7 +11,7 @@ Sybil-resistant reputation protocols are a notoriously difficult challenge. Hist
 
 The problem with both of those approaches is the reputation of each account is only as good as the latest snapshot, and they rely on centralized authorities (ex: Google, Github, Twitter, etc).
 
-Repstation's approach is to leverage social capital to bootstrap a reputation network onchain. It is effectively a DAO whose sole function is to steward the reputation of its members. It is founded on the belief that our most valuable assets are time and social capital.
+Repstation's approach is to leverage social capital to bootstrap a reputation network onchain. It is effectively a DAO whose sole function is to steward the reputation of its members.
 
 Key features:
 - Unlike traditional DAOs, membership doesn't require buying a token or a vote by existing members. It only requires you know an existing member who thinks you're worthy of an up vote (positive attestation).
