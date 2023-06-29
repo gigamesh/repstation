@@ -24,6 +24,7 @@ Key features:
 - Rep increases from receiving positive attestations, scaled by the rep of the attester.
 - Rep decreases from receiving negative attestations, scaled by the rep of the attester.
 - Accounts can't make attestations about their own address.
+- TBD: A penalty mechanism or throttle that prevents making attestations about the same account too frequently (to limit sybil attacks & other abuse)
 
 ## Contracts
 
