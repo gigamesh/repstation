@@ -8,11 +8,15 @@ import {EAS} from "eas/EAS.sol";
 
 contract CounterTest is Test {
     EAS public eas;
+    Registry public registry;
     Repstation public repstation;
 
     function setUp() public {
-        eas = new EAS(new SchemaRegistry());
+        registry = new Registry();
+        eas = new EAS(registry);
         repstation = new Repstation();
+
+        registry.register("bool approve", address(repstation), false);
     }
 
     // Contract can be initialized

@@ -5,7 +5,7 @@ pragma solidity 0.8.19;
 import {IEAS, Attestation} from "eas/IEAS.sol";
 import {InvalidEAS, uncheckedInc} from "eas/Common.sol";
 import {ISchemaResolver} from "eas/resolver/ISchemaResolver.sol";
-import {Ownable2StepUpgradeable} from "oz-upgradeable/access/Ownable2StepUpgradeable.sol";
+import {Ownable2StepUpgradeable} from "@openzeppelin-upgradeable/access/Ownable2StepUpgradeable.sol";
 
 /**
  * @title An upgradeable base resolver contract
