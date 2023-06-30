@@ -5,12 +5,6 @@ import {Attestation} from "eas/IEAS.sol";
 import {BaseResolver} from "./BaseResolver.sol";
 
 /**
-TODOs:
-- Determine age decay function
-- 
- */
-
-/**
  * @title Repstation
  * @author @gigamesh
  * @notice An onchain reputation system built as an attestation resolver in the Ethereum Attestation Service

@@ -6,12 +6,17 @@ import {IEAS, Attestation} from "eas/IEAS.sol";
 import {InvalidEAS, uncheckedInc} from "eas/Common.sol";
 import {ISchemaResolver} from "eas/resolver/ISchemaResolver.sol";
 import {Ownable2StepUpgradeable} from "@openzeppelin-upgradeable/access/Ownable2StepUpgradeable.sol";
+import {UUPSUpgradeable} from "@openzeppelin-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 /**
  * @title An upgradeable base resolver contract
  * @dev Upgrdeable fork of this: https://github.com/ethereum-attestation-service/eas-contracts/blob/master/contracts/resolver/SchemaResolver.sol
  */
-abstract contract BaseResolver is ISchemaResolver, Ownable2StepUpgradeable {
+abstract contract BaseResolver is
+    ISchemaResolver,
+    Ownable2StepUpgradeable,
+    UUPSUpgradeable
+{
     error AccessDenied();
     error InsufficientValue();
     error NotPayable();
@@ -37,6 +42,9 @@ abstract contract BaseResolver is ISchemaResolver, Ownable2StepUpgradeable {
         }
 
         _eas = IEAS(eas);
+
+        __Ownable2Step_init();
+        __UUPSUpgradeable_init();
     }
 
     /**
@@ -189,4 +197,9 @@ abstract contract BaseResolver is ISchemaResolver, Ownable2StepUpgradeable {
             revert AccessDenied();
         }
     }
+
+    /**
+     * @dev Authorizes upgrades. MUST INCLUDE IN EVERY VERSION!
+     */
+    function _authorizeUpgrade(address) internal override onlyOwner {}
 }
