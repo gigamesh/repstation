@@ -16,6 +16,13 @@ contract RepstationTest is Test {
 
     uint256 constant MAX_REP = 1000e18;
 
+    address[] public genesisAccounts = [
+        0x5B38Da6a701c568545dCfcB03FcB875f56beddC4,
+        0xAb8483F64d9C6d1EcF9b849Ae677dD3315835cb2,
+        0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db,
+        0x78731D3Ca6b7E34aC0F824c42a7cC18A495cabaB
+    ];
+
     function setUp() public {
         registry = new SchemaRegistry();
         eas = new EAS(registry);
@@ -24,7 +31,7 @@ contract RepstationTest is Test {
             payable(new ERC1967Proxy(address(repstationImp), bytes("")))
         );
 
-        repstation.initialize(address(eas));
+        repstation.initialize(address(eas), genesisAccounts);
     }
 
     // Contract can be initialized
@@ -34,7 +41,23 @@ contract RepstationTest is Test {
             payable(new ERC1967Proxy(address(imp), bytes("")))
         );
 
-        proxy.initialize(address(eas));
+        proxy.initialize(address(eas), genesisAccounts);
+
+        for (uint256 i = 0; i < genesisAccounts.length; i++) {
+            assertEq(repstation.accountInfo(genesisAccounts[i]).rep, MAX_REP);
+            assertEq(
+                repstation.accountInfo(genesisAccounts[i]).createdAt,
+                uint32(block.timestamp)
+            );
+            assertEq(
+                repstation.accountInfo(genesisAccounts[i]).createdAt,
+                uint32(block.timestamp)
+            );
+            assertEq(
+                repstation.accountInfo(genesisAccounts[i]).attestationCount,
+                0
+            );
+        }
     }
 
     // Contract can be upgraded
@@ -52,13 +75,6 @@ contract RepstationTest is Test {
         bytes32 uid = registerSchema();
 
         assertEq(uid, registry.getSchema(uid).uid);
-    }
-
-    // Initializes accounts with max rep
-    function testRepInitialization() public {
-        registerSchema();
-
-        // assertEq(repstation.getRep(address(this), uid), MAX_REP);
     }
 
     // Returns correct rep for given accounts
