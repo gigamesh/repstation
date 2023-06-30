@@ -4,19 +4,24 @@ pragma solidity ^0.8.13;
 import "forge-std/Test.sol";
 import "../src/Repstation.sol";
 import {SchemaRegistry} from "eas/SchemaRegistry.sol";
+import {ISchemaResolver} from "eas/resolver/ISchemaResolver.sol";
 import {EAS} from "eas/EAS.sol";
 
-contract CounterTest is Test {
+contract RepstationTest is Test {
     EAS public eas;
-    Registry public registry;
+    SchemaRegistry public registry;
     Repstation public repstation;
 
     function setUp() public {
-        registry = new Registry();
+        registry = new SchemaRegistry();
         eas = new EAS(registry);
         repstation = new Repstation();
 
-        registry.register("bool approve", address(repstation), false);
+        registry.register(
+            "bool approve",
+            ISchemaResolver(address(repstation)),
+            false
+        );
     }
 
     // Contract can be initialized
