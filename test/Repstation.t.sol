@@ -7,7 +7,28 @@ import {SchemaRegistry} from "eas/SchemaRegistry.sol";
 import {ISchemaResolver} from "eas/resolver/ISchemaResolver.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {RepstationV2Mock} from "./mocks/RepstationV2Mock.sol";
-import {EAS} from "eas/EAS.sol";
+import {EAS, AttestationRequest, AttestationRequestData} from "eas/EAS.sol";
+import {FixedPointMathLib} from "solady/utils/FixedPointMathLib.sol";
+
+// A zero expiration represents an non-expiring attestation.
+uint64 constant NO_EXPIRATION_TIME = 0;
+
+// struct AttestationRequestData {
+//     address recipient; // The recipient of the attestation.
+//     uint64 expirationTime; // The time when the attestation expires (Unix timestamp).
+//     bool revocable; // Whether the attestation is revocable.
+//     bytes32 refUID; // The UID of the related attestation.
+//     bytes data; // Custom attestation data.
+//     uint256 value; // An explicit ETH amount to send to the resolver. This is important to prevent accidental user errors.
+// }
+
+// /**
+//  * @dev A struct representing the full arguments of the attestation request.
+//  */
+// struct AttestationRequest {
+//     bytes32 schema; // The unique identifier of the schema.
+//     AttestationRequestData data; // The arguments of the attestation request.
+// }
 
 contract RepstationTest is Test {
     EAS public eas;
@@ -77,13 +98,32 @@ contract RepstationTest is Test {
         assertEq(uid, registry.getSchema(uid).uid);
     }
 
-    // Returns correct rep for given accounts
+    // // Users can make attestations
+    // function testAttestation() public {
+    //     bytes32 uid = registerSchema();
 
-    // Returns correct createdAt for given accounts
+    //     address recipient1 = address(123);
+    //     address recipient2 = address(456);
+
+    //     eas.attest(
+    //         AttestationRequest({
+    //             schema: uid,
+    //             data: AttestationRequestData({
+    //                 recipient: recipient1,
+    //                 expirationTime: NO_EXPIRATION_TIME,
+    //                 revocable: false,
+    //                 refUID: 0x0,
+    //                 data: new bytes(1),
+    //                 value: 0
+    //             })
+    //         })
+    //     );
+
+    //     assertEq(repstation.accountInfo(recipient1).rep, MAX_REP - 1);
+    //     assertEq(repstation.accountInfo(address(this)).attestationCount, 1);
+    // }
 
     // Correctly calculates decayed rep
-
-    // Users can make attestations
 
     // Returns correct attestationCount
 
@@ -96,11 +136,34 @@ contract RepstationTest is Test {
     // HELPERS
     function registerSchema() internal returns (bytes32) {
         bytes32 uid = registry.register(
-            "bool approve",
+            "bool upVote",
             ISchemaResolver(address(repstation)),
             false
         );
 
         return uid;
+    }
+
+    function testMath() public {
+        uint256 attestationCount = 15;
+
+        uint256 timeTranspired = 30 days;
+
+        // Attestations per day (fraction scaled to 1e18)
+        uint256 attestationsPerDay = FixedPointMathLib.divWad(
+            attestationCount,
+            timeTranspired
+        ) * 1 days;
+
+        // https://www.desmos.com/calculator/3rqdk2k1a6
+        uint256 decayRatePerSec = FixedPointMathLib.mulDiv(
+            1,
+            uint256(
+                FixedPointMathLib.powWad(0.5e18, int256(attestationsPerDay))
+            ),
+            86400
+        );
+
+        console.log("decayRatePerSec", uint256(decayRatePerSec));
     }
 }

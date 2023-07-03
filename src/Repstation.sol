@@ -6,6 +6,10 @@ import {InvalidEAS, uncheckedInc} from "eas/Common.sol";
 import {ISchemaResolver} from "eas/resolver/ISchemaResolver.sol";
 import {Ownable2StepUpgradeable} from "@openzeppelin-upgradeable/contracts/access/Ownable2StepUpgradeable.sol";
 import {UUPSUpgradeable} from "@openzeppelin-upgradeable/contracts/proxy/utils/UUPSUpgradeable.sol";
+import {FixedPointMathLib} from "solady/utils/FixedPointMathLib.sol";
+
+/// @dev The scalar of ETH and most ERC20s.
+uint256 constant WAD = 1e18;
 
 /**
  * @title Repstation
@@ -17,23 +21,33 @@ contract Repstation is
     Ownable2StepUpgradeable,
     UUPSUpgradeable
 {
-    struct Account {
-        uint136 rep;
-        uint32 attestationCount;
-        uint32 createdAt;
-    }
-
-    error AttesterNotRegistered();
+    error AttesterHasNoRep(address attester);
     error AccessDenied();
     error InsufficientValue();
     error NotPayable();
 
+    struct Account {
+        // Reputation score
+        uint256 rep;
+        // Number of attestations given
+        uint32 attestationCount;
+        // Timestamp of latest attestation given
+        uint32 lastAttestationGivenAt;
+        // Timestamp of when this account received its first attestation
+        uint32 createdAt;
+    }
+
+    // Account info for each address
     mapping(address => Account) public accounts;
+
+    // Latest attestation timestamp for each attester-recipient pair
+    mapping(address => mapping(address => uint32 latestAttestation))
+        public latestAttestations;
 
     string public constant VERSION = "0.1";
 
     // TODO: determine if this type makes sense
-    uint136 public constant MAX_REP = 1000e18;
+    uint256 public constant MAX_REP = 1000e18;
 
     // The global EAS contract.
     IEAS internal _eas;
@@ -94,27 +108,35 @@ contract Repstation is
     }
 
     function onAttest(
-        Attestation calldata attestation,
-        uint256 /* value */
+        Attestation calldata attestation
     ) internal returns (bool) {
         Account storage attester = accounts[attestation.attester];
         Account storage attested = accounts[attestation.recipient];
 
-        // Only registered attestors can attest
-        if (attester.createdAt == 0) {
-            revert AttesterNotRegistered();
-        }
-
-        // Initialize Account of attested if this is their first attestation
-        if (attested.createdAt == 0) {
-            attested.createdAt = uint32(block.timestamp);
+        // Only accounts with rep attestors can attest
+        if (attester.rep == 0) {
+            revert AttesterHasNoRep(attestation.attester);
         }
 
         // Calculate rep & update Account of attested/recipient
-        // uint256 attestorRep = accounts[attestation.attester].rep;
+        uint256 decayedAttestedRep = rep(attestation.recipient);
+        uint256 attestorRep = accounts[attestation.attester].rep;
 
+        uint256 newRep = decayedAttestedRep + (1 * (attestorRep / 100));
+
+        if (newRep > MAX_REP) {
+            newRep = MAX_REP;
+        }
+
+        attested.rep = newRep;
+
+        // Making this attestion changes the decay rate of the attester, so we need
+        // to store a snapshot of their current rep for future calculations
+        attester.rep = rep(attestation.attester);
         // Increment attester's attestationCount
         attester.attestationCount = attester.attestationCount + 1;
+        // Record timestamp of attestation
+        attested.lastAttestationGivenAt = uint32(block.timestamp);
 
         return true;
     }
@@ -125,7 +147,7 @@ contract Repstation is
     function attest(
         Attestation calldata attestation
     ) external payable onlyEAS returns (bool) {
-        return onAttest(attestation, msg.value);
+        return onAttest(attestation);
     }
 
     /**
@@ -133,32 +155,12 @@ contract Repstation is
      */
     function multiAttest(
         Attestation[] calldata attestations,
-        uint256[] calldata values
+        uint256[] calldata /* values */
     ) external payable onlyEAS returns (bool) {
         uint256 length = attestations.length;
 
-        // We are keeping track of the remaining ETH amount that can be sent to resolvers and will keep deducting
-        // from it to verify that there isn't any attempt to send too much ETH to resolvers. Please note that unless
-        // some ETH was stuck in the contract by accident (which shouldn't happen in normal conditions), it won't be
-        // possible to send too much ETH anyway.
-        uint256 remainingValue = msg.value;
-
         for (uint256 i = 0; i < length; i = uncheckedInc(i)) {
-            // Ensure that the attester/revoker doesn't try to spend more than available.
-            uint256 value = values[i];
-            if (value > remainingValue) {
-                revert InsufficientValue();
-            }
-
-            // Forward the attestation to the underlying resolver and revert in case it isn't approved.
-            if (!onAttest(attestations[i], value)) {
-                return false;
-            }
-
-            unchecked {
-                // Subtract the ETH amount, that was provided to this attestation, from the global remaining ETH amount.
-                remainingValue -= value;
-            }
+            onAttest(attestations[i]);
         }
 
         return true;
@@ -183,6 +185,48 @@ contract Repstation is
 
     function accountInfo(address account) public view returns (Account memory) {
         return accounts[account];
+    }
+
+    /**
+     * @dev Returns the compound decayed reputation of an account.
+     */
+    function rep(address account) public view returns (uint256) {
+        Account memory _accountInfo = accounts[account];
+
+        uint256 secondsSinceLastAttestation = (block.timestamp -
+            _accountInfo.lastAttestationGivenAt);
+        uint256 decayRatePerSec = repDecayRatePerSec(account);
+
+        // https://medium.com/coinmonks/math-in-solidity-part-5-exponent-and-logarithm-9aef8515136e
+        return
+            uint256(
+                FixedPointMathLib.powWad(
+                    2,
+                    int256(secondsSinceLastAttestation) *
+                        int256(FixedPointMathLib.log2(1e18 + decayRatePerSec))
+                )
+            ) * _accountInfo.rep;
+    }
+
+    function repDecayRatePerSec(address account) public view returns (uint256) {
+        Account memory _account = accounts[account];
+
+        // Attestations per day (fraction scaled to 1e18)
+        uint256 attestationsPerDay = FixedPointMathLib.divWad(
+            _account.attestationCount,
+            (block.timestamp - _account.createdAt)
+        ) * 1 days;
+
+        // https://www.desmos.com/calculator/3rqdk2k1a6
+        uint256 decayRatePerSec = FixedPointMathLib.mulDiv(
+            1,
+            uint256(
+                FixedPointMathLib.powWad(0.5e18, int256(attestationsPerDay))
+            ),
+            86400
+        );
+
+        return decayRatePerSec;
     }
 
     /**
