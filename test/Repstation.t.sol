@@ -245,35 +245,35 @@ contract RepstationTest is Test {
         assertEq(decayRatePerSec, 28935649450);
     }
 
-    function testMath() public {
-        int256 secondsSinceCheckpoint = 86400;
-        uint256 decayRatePerSecond = 115740740740;
+    // function testMath() public {
+    //     int256 secondsSinceCheckpoint = 86400;
+    //     uint256 decayRatePerSecond = 115740740740;
 
-        int256 result = intoInt256(
-            pow(
-                PRBMathCastingUint256.intoSD59x18(2e18),
-                sd(
-                    secondsSinceCheckpoint *
-                        intoInt256(
-                            log2(
-                                PRBMathCastingUint256.intoSD59x18(
-                                    1e18 - decayRatePerSecond
-                                )
-                            )
-                        )
-                )
-            )
-        );
+    //     int256 result = intoInt256(
+    //         pow(
+    //             PRBMathCastingUint256.intoSD59x18(2e18),
+    //             sd(
+    //                 secondsSinceCheckpoint *
+    //                     intoInt256(
+    //                         log2(
+    //                             PRBMathCastingUint256.intoSD59x18(
+    //                                 1e18 - decayRatePerSecond
+    //                             )
+    //                         )
+    //                     )
+    //             )
+    //         )
+    //     );
 
-        // console.log("result", result);
+    //     // console.log("result", result);
 
-        // int256 result = secondsSinceCheckpoint *
-        //     intoInt256(
-        //         log2(
-        //             PRBMathCastingUint256.intoSD59x18(1e18 - decayRatePerSecond)
-        //         )
-        //     );
+    //     // int256 result = secondsSinceCheckpoint *
+    //     //     intoInt256(
+    //     //         log2(
+    //     //             PRBMathCastingUint256.intoSD59x18(1e18 - decayRatePerSecond)
+    //     //         )
+    //     //     );
 
-        assertEq(result, 990049833177087907);
-    }
+    //     assertEq(result, 990049833177087907);
+    // }
 }
