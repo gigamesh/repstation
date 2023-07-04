@@ -1,6 +1,12 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
+import "forge-std/console.sol";
+
+import {pow, log2, mul} from "@prb/math/sd59x18/Math.sol";
+import {sd} from "@prb/math/SD59x18.sol";
+import {intoUint256, intoInt256} from "@prb/math/sd59x18/Casting.sol";
+import {PRBMathCastingUint256} from "@prb/math/casting/Uint256.sol";
 import {IEAS, Attestation} from "eas/IEAS.sol";
 import {InvalidEAS, uncheckedInc} from "eas/Common.sol";
 import {ISchemaResolver} from "eas/resolver/ISchemaResolver.sol";
@@ -136,7 +142,7 @@ contract Repstation is
         // Increment attester's attestationCount
         attester.attestationCount = attester.attestationCount + 1;
         // Record timestamp of attestation
-        attested.lastAttestationGivenAt = uint32(block.timestamp);
+        attester.lastAttestationGivenAt = uint32(block.timestamp);
 
         return true;
     }
@@ -193,28 +199,43 @@ contract Repstation is
     function rep(address account) public view returns (uint256) {
         Account memory _accountInfo = accounts[account];
 
-        uint256 secondsSinceLastAttestation = (block.timestamp -
-            _accountInfo.lastAttestationGivenAt);
+        // If no attestations have been given yet, look at creation time.
+        uint256 checkpoint = _accountInfo.lastAttestationGivenAt > 0
+            ? _accountInfo.lastAttestationGivenAt
+            : _accountInfo.createdAt;
+
+        int256 secondsSinceCheckpoint = int256(block.timestamp - checkpoint);
         uint256 decayRatePerSec = repDecayRatePerSec(account);
 
         // https://medium.com/coinmonks/math-in-solidity-part-5-exponent-and-logarithm-9aef8515136e
         return
-            uint256(
-                FixedPointMathLib.powWad(
-                    2,
-                    int256(secondsSinceLastAttestation) *
-                        int256(FixedPointMathLib.log2(1e18 + decayRatePerSec))
+            (_accountInfo.rep / 1e18) *
+            intoUint256(
+                pow(
+                    PRBMathCastingUint256.intoSD59x18(2e18),
+                    sd(
+                        secondsSinceCheckpoint *
+                            intoInt256(
+                                log2(
+                                    PRBMathCastingUint256.intoSD59x18(
+                                        1e18 - decayRatePerSec
+                                    )
+                                )
+                            )
+                    )
                 )
-            ) * _accountInfo.rep;
+            );
     }
 
     function repDecayRatePerSec(address account) public view returns (uint256) {
         Account memory _account = accounts[account];
 
+        uint256 ageOfAccount = block.timestamp - _account.createdAt;
+
         // Attestations per day (fraction scaled to 1e18)
         uint256 attestationsPerDay = FixedPointMathLib.divWad(
             _account.attestationCount,
-            (block.timestamp - _account.createdAt)
+            ageOfAccount
         ) * 1 days;
 
         // https://www.desmos.com/calculator/3rqdk2k1a6
@@ -223,7 +244,9 @@ contract Repstation is
             uint256(
                 FixedPointMathLib.powWad(0.5e18, int256(attestationsPerDay))
             ),
-            86400
+            // 8640000 instead of 86400 to compensate for not being able to multiply by 0.01
+            // (actual formula would be 0.01 * (0.5e18 ** attestationsPerDay) / 86400)
+            8640000
         );
 
         return decayRatePerSec;

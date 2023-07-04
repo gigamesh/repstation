@@ -3,6 +3,8 @@ pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
 import "../src/Repstation.sol";
+import {sd} from "@prb/math/SD59x18.sol";
+import {intoInt256} from "@prb/math/sd59x18/Casting.sol";
 import {SchemaRegistry} from "eas/SchemaRegistry.sol";
 import {ISchemaResolver} from "eas/resolver/ISchemaResolver.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
@@ -34,6 +36,7 @@ contract RepstationTest is Test {
     EAS public eas;
     SchemaRegistry public registry;
     Repstation public repstation;
+    bytes32 public schemaUid;
 
     uint256 constant MAX_REP = 1000e18;
 
@@ -98,32 +101,57 @@ contract RepstationTest is Test {
         assertEq(uid, registry.getSchema(uid).uid);
     }
 
-    // // Users can make attestations
-    // function testAttestation() public {
-    //     bytes32 uid = registerSchema();
+    // Attestation timestamp is recorded
+    function testLastAttestationGivenAt() public {
+        bytes32 uid = registerSchema();
 
-    //     address recipient1 = address(123);
-    //     address recipient2 = address(456);
+        address recipient = address(123);
 
-    //     eas.attest(
-    //         AttestationRequest({
-    //             schema: uid,
-    //             data: AttestationRequestData({
-    //                 recipient: recipient1,
-    //                 expirationTime: NO_EXPIRATION_TIME,
-    //                 revocable: false,
-    //                 refUID: 0x0,
-    //                 data: new bytes(1),
-    //                 value: 0
-    //             })
-    //         })
-    //     );
+        vm.warp(1 days);
 
-    //     assertEq(repstation.accountInfo(recipient1).rep, MAX_REP - 1);
-    //     assertEq(repstation.accountInfo(address(this)).attestationCount, 1);
-    // }
+        vm.prank(genesisAccounts[0]);
+        eas.attest(
+            AttestationRequest({
+                schema: uid,
+                data: AttestationRequestData({
+                    recipient: recipient,
+                    expirationTime: NO_EXPIRATION_TIME,
+                    revocable: false,
+                    refUID: 0x0,
+                    data: new bytes(1),
+                    value: 0
+                })
+            })
+        );
+
+        assertEq(
+            repstation.accountInfo(genesisAccounts[0]).lastAttestationGivenAt,
+            uint32(block.timestamp)
+        );
+    }
 
     // Correctly calculates decayed rep
+    function testDecayedRep() public {
+        uint256 initialRep = repstation.accountInfo(genesisAccounts[0]).rep;
+        uint256 createdAt = repstation
+            .accountInfo(genesisAccounts[0])
+            .createdAt;
+        assertEq(initialRep, MAX_REP);
+
+        vm.warp(createdAt + 1 days);
+
+        uint256 decayedRep = repstation.rep(genesisAccounts[0]);
+
+        // After 1 day, 1% of rep is decayed
+        assertEq(decayedRep, 990049833177087907000);
+
+        vm.warp(createdAt + 10 days);
+
+        decayedRep = repstation.rep(genesisAccounts[0]);
+
+        // After 10 days, rep has decayed by ~9.5% (1% compounded daily)
+        assertEq(decayedRep, 904837412807540732000);
+    }
 
     // Returns correct attestationCount
 
@@ -135,35 +163,117 @@ contract RepstationTest is Test {
 
     // HELPERS
     function registerSchema() internal returns (bytes32) {
+        if (schemaUid != 0x0) {
+            return schemaUid;
+        }
+
         bytes32 uid = registry.register(
             "bool upVote",
             ISchemaResolver(address(repstation)),
             false
         );
 
+        schemaUid = uid;
+
         return uid;
     }
 
-    function testMath() public {
-        uint256 attestationCount = 15;
+    function testDecayRatePerSec() public {
+        // This test will fail if we check in the genesis block, because a denominator will be zero
+        vm.warp(block.timestamp + 1);
 
-        uint256 timeTranspired = 30 days;
-
-        // Attestations per day (fraction scaled to 1e18)
-        uint256 attestationsPerDay = FixedPointMathLib.divWad(
-            attestationCount,
-            timeTranspired
-        ) * 1 days;
-
-        // https://www.desmos.com/calculator/3rqdk2k1a6
-        uint256 decayRatePerSec = FixedPointMathLib.mulDiv(
-            1,
-            uint256(
-                FixedPointMathLib.powWad(0.5e18, int256(attestationsPerDay))
-            ),
-            86400
+        uint256 decayRatePerSec = repstation.repDecayRatePerSec(
+            genesisAccounts[0]
         );
 
-        console.log("decayRatePerSec", uint256(decayRatePerSec));
+        /**
+         * Default decay rate == 1% per day, or 1.1574074074e-7 per second (0.01 / 86400)
+         * https://www.desmos.com/calculator/3rqdk2k1a6
+         */
+        assertEq(decayRatePerSec, 115740740740);
+
+        bytes32 uid = registerSchema();
+
+        vm.warp(block.timestamp + 1 days);
+
+        vm.prank(genesisAccounts[0]);
+        eas.attest(
+            AttestationRequest({
+                schema: uid,
+                data: AttestationRequestData({
+                    recipient: address(123),
+                    expirationTime: NO_EXPIRATION_TIME,
+                    revocable: false,
+                    refUID: 0x0,
+                    data: new bytes(1),
+                    value: 0
+                })
+            })
+        );
+
+        decayRatePerSec = repstation.repDecayRatePerSec(genesisAccounts[0]);
+
+        /**
+         * User now has 1 attestation per day, which means their decay rate
+         * should be 0.5% per day, or 5.787037037e-8 per second (0.005 / 86400)
+         */
+        // TODO: Investigate how to reconfigure math in repDecayRatePerSec to reduce precision loss
+        assertEq(decayRatePerSec, 57870834634);
+
+        vm.prank(genesisAccounts[0]);
+        eas.attest(
+            AttestationRequest({
+                schema: uid,
+                data: AttestationRequestData({
+                    recipient: address(456),
+                    expirationTime: NO_EXPIRATION_TIME,
+                    revocable: false,
+                    refUID: 0x0,
+                    data: new bytes(1),
+                    value: 0
+                })
+            })
+        );
+
+        decayRatePerSec = repstation.repDecayRatePerSec(genesisAccounts[0]);
+
+        /**
+         * User now has 2 attestation per day, which means their decay rate
+         * should be 0.25% per day, or 2.8935185185e-8 per second (0.0025 / 86400)
+         */
+        // TODO: Investigate how to reconfigure math in repDecayRatePerSec to reduce precision loss
+        assertEq(decayRatePerSec, 28935649450);
     }
+
+    // function testMath() public {
+    //     int256 secondsSinceCheckpoint = 86400;
+    //     uint256 decayRatePerSecond = 115740740740;
+
+    //     int256 result = intoInt256(
+    //         pow(
+    //             PRBMathCastingUint256.intoSD59x18(2e18),
+    //             sd(
+    //                 secondsSinceCheckpoint *
+    //                     intoInt256(
+    //                         log2(
+    //                             PRBMathCastingUint256.intoSD59x18(
+    //                                 1e18 - decayRatePerSecond
+    //                             )
+    //                         )
+    //                     )
+    //             )
+    //         )
+    //     );
+
+    //     // console.log("result", result);
+
+    //     // int256 result = secondsSinceCheckpoint *
+    //     //     intoInt256(
+    //     //         log2(
+    //     //             PRBMathCastingUint256.intoSD59x18(1e18 - decayRatePerSecond)
+    //     //         )
+    //     //     );
+
+    //     assertEq(result, 990049833177087907);
+    // }
 }

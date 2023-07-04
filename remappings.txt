@@ -2,3 +2,4 @@
 @openzeppelin-upgradeable/=./lib/openzeppelin-contracts-upgradeable/
 solady/=./lib/solady/src/
 eas/=./lib/eas-contracts/contracts/
+@prb/math/=lib/prb-math/src/
