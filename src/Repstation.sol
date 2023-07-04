@@ -209,19 +209,21 @@ contract Repstation is
 
         // https://medium.com/coinmonks/math-in-solidity-part-5-exponent-and-logarithm-9aef8515136e
         return
-            (_accountInfo.rep / 1e18) *
-            intoUint256(
-                pow(
-                    PRBMathCastingUint256.intoSD59x18(2e18),
-                    sd(
-                        secondsSinceCheckpoint *
-                            intoInt256(
-                                log2(
-                                    PRBMathCastingUint256.intoSD59x18(
-                                        1e18 - decayRatePerSec
+            FixedPointMathLib.mulWad(
+                _accountInfo.rep,
+                intoUint256(
+                    pow(
+                        PRBMathCastingUint256.intoSD59x18(2e18),
+                        sd(
+                            secondsSinceCheckpoint *
+                                intoInt256(
+                                    log2(
+                                        PRBMathCastingUint256.intoSD59x18(
+                                            1e18 - decayRatePerSec
+                                        )
                                     )
                                 )
-                            )
+                        )
                     )
                 )
             );
