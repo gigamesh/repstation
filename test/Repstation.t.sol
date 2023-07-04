@@ -138,15 +138,19 @@ contract RepstationTest is Test {
             .createdAt;
         assertEq(initialRep, MAX_REP);
 
-        console.log("initialRep", initialRep);
-
-        vm.warp(createdAt + 10 days);
+        vm.warp(createdAt + 1 days);
 
         uint256 decayedRep = repstation.rep(genesisAccounts[0]);
 
-        console.log("decayedRep", decayedRep);
+        // After 1 day, 1% of rep is decayed
+        assertEq(decayedRep, 990049833177087907000);
 
-        // assertApproxEqRel(decayedRep, MAX_REP - 30, 0.00000001e18);
+        vm.warp(createdAt + 10 days);
+
+        decayedRep = repstation.rep(genesisAccounts[0]);
+
+        // After 10 days, rep has decayed by ~9.5% (1% compounded daily)
+        assertEq(decayedRep, 904837412807540732000);
     }
 
     // Returns correct attestationCount
@@ -186,11 +190,11 @@ contract RepstationTest is Test {
          * Default decay rate == 1% per day, or 1.1574074074e-7 per second (0.01 / 86400)
          * https://www.desmos.com/calculator/3rqdk2k1a6
          */
-        assertEq(decayRatePerSec, 11574074074074);
+        assertEq(decayRatePerSec, 115740740740);
 
         bytes32 uid = registerSchema();
 
-        vm.warp(1 days);
+        vm.warp(block.timestamp + 1 days);
 
         vm.prank(genesisAccounts[0]);
         eas.attest(
@@ -214,7 +218,7 @@ contract RepstationTest is Test {
          * should be 0.5% per day, or 5.787037037e-8 per second (0.005 / 86400)
          */
         // TODO: Investigate how to reconfigure math in repDecayRatePerSec to reduce precision loss
-        assertEq(decayRatePerSec, 5786990609968);
+        assertEq(decayRatePerSec, 57870834634);
 
         vm.prank(genesisAccounts[0]);
         eas.attest(
@@ -238,38 +242,38 @@ contract RepstationTest is Test {
          * should be 0.25% per day, or 2.8935185185e-8 per second (0.0025 / 86400)
          */
         // TODO: Investigate how to reconfigure math in repDecayRatePerSec to reduce precision loss
-        assertEq(decayRatePerSec, 2893472091636);
+        assertEq(decayRatePerSec, 28935649450);
     }
 
     function testMath() public {
-        uint256 secondsSinceCheckpoint = 10;
-        uint256 decayRatePerSecond = 0.01e18;
+        int256 secondsSinceCheckpoint = 86400;
+        uint256 decayRatePerSecond = 115740740740;
 
-        // uint256 result = intoUint256(
-        //     pow(
-        //         PRBMathCastingUint256.intoSD59x18(2),
-        //         PRBMathCastingUint256.intoSD59x18(secondsSinceCheckpoint) *
-        //             log2(
-        //                 PRBMathCastingUint256.intoSD59x18(
-        //                     1e18 - decayRatePerSecond
-        //                 )
-        //             )
-        //     )
-        // );
+        int256 result = intoInt256(
+            pow(
+                PRBMathCastingUint256.intoSD59x18(2e18),
+                sd(
+                    secondsSinceCheckpoint *
+                        intoInt256(
+                            log2(
+                                PRBMathCastingUint256.intoSD59x18(
+                                    1e18 - decayRatePerSecond
+                                )
+                            )
+                        )
+                )
+            )
+        );
 
         // console.log("result", result);
 
-        // int256 result = intoInt256(
-        //     mul(
-        //         PRBMathCastingUint256.intoSD59x18(secondsSinceCheckpoint),
+        // int256 result = secondsSinceCheckpoint *
+        //     intoInt256(
         //         log2(
         //             PRBMathCastingUint256.intoSD59x18(1e18 - decayRatePerSecond)
         //         )
-        //     )
-        // );
+        //     );
 
-        int256 result = intoInt256(mul(sd(3), sd(-5)));
-
-        assertEq(result, -15);
+        assertEq(result, 990049833177087907);
     }
 }
