@@ -3,6 +3,9 @@ pragma solidity ^0.8.13;
 
 import "forge-std/console.sol";
 
+import {pow, log2, mul} from "@prb/math/sd59x18/Math.sol";
+import {intoUint256} from "@prb/math/sd59x18/Casting.sol";
+import {PRBMathCastingUint256} from "@prb/math/casting/Uint256.sol";
 import {IEAS, Attestation} from "eas/IEAS.sol";
 import {InvalidEAS, uncheckedInc} from "eas/Common.sol";
 import {ISchemaResolver} from "eas/resolver/ISchemaResolver.sol";
@@ -203,13 +206,20 @@ contract Repstation is
         uint256 secondsSinceCheckpoint = (block.timestamp - checkpoint);
         uint256 decayRatePerSec = repDecayRatePerSec(account);
 
+        console.log("secondsSinceCheckpoint", secondsSinceCheckpoint);
+        console.log("decayRatePerSec", decayRatePerSec);
+
         // https://medium.com/coinmonks/math-in-solidity-part-5-exponent-and-logarithm-9aef8515136e
         return
-            uint256(
-                FixedPointMathLib.powWad(
-                    2,
-                    int256(secondsSinceCheckpoint) *
-                        log2(int256(1e18 - decayRatePerSec))
+            intoUint256(
+                pow(
+                    PRBMathCastingUint256.intoSD59x18(2),
+                    PRBMathCastingUint256.intoSD59x18(secondsSinceCheckpoint) *
+                        log2(
+                            PRBMathCastingUint256.intoSD59x18(
+                                1e18 - decayRatePerSec
+                            )
+                        )
                 )
             );
     }
@@ -241,105 +251,4 @@ contract Repstation is
      * @dev Authorizes upgrades. MUST INCLUDE IN EVERY VERSION!
      */
     function _authorizeUpgrade(address) internal override onlyOwner {}
-
-    // TEMPORARY: REMOVE BEFORE DEPLOYMENT
-
-    /// @notice Finds the zero-based index of the first one in the binary representation of x.
-    /// @dev See the note on msb in the "Find First Set" Wikipedia article https://en.wikipedia.org/wiki/Find_first_set
-    /// @param x The uint256 number for which to find the index of the most significant bit.
-    /// @return msb The index of the most significant bit as an uint256.
-    function mostSignificantBit(uint256 x) internal pure returns (uint256 msb) {
-        if (x >= 2 ** 128) {
-            x >>= 128;
-            msb += 128;
-        }
-        if (x >= 2 ** 64) {
-            x >>= 64;
-            msb += 64;
-        }
-        if (x >= 2 ** 32) {
-            x >>= 32;
-            msb += 32;
-        }
-        if (x >= 2 ** 16) {
-            x >>= 16;
-            msb += 16;
-        }
-        if (x >= 2 ** 8) {
-            x >>= 8;
-            msb += 8;
-        }
-        if (x >= 2 ** 4) {
-            x >>= 4;
-            msb += 4;
-        }
-        if (x >= 2 ** 2) {
-            x >>= 2;
-            msb += 2;
-        }
-        if (x >= 2 ** 1) {
-            // No need to shift x any more.
-            msb += 1;
-        }
-    }
-
-    /// @notice Calculates the binary logarithm of x.
-    ///
-    /// @dev Based on the iterative approximation algorithm.
-    /// https://en.wikipedia.org/wiki/Binary_logarithm#Iterative_approximation
-    ///
-    /// Requirements:
-    /// - x must be greater than zero.
-    ///
-    /// Caveats:
-    /// - The results are nor perfectly accurate to the last digit, due to the lossy precision of the iterative approximation.
-    ///
-    /// @param x The signed 59.18-decimal fixed-point number for which to calculate the binary logarithm.
-    function log2(int256 x) internal pure returns (int256 result) {
-        require(x > 0);
-        unchecked {
-            // This works because log2(x) = -log2(1/x).
-            int256 sign;
-            if (x >= int256(WAD)) {
-                sign = 1;
-            } else {
-                sign = -1;
-                // Do the fixed-point inversion inline to save gas. The numerator is WAD * WAD.
-                assembly {
-                    x := div(1000000000000000000000000000000000000, x)
-                }
-            }
-
-            // Calculate the integer part of the logarithm and add it to the result and finally calculate y = x * 2^(-n).
-            uint256 n = mostSignificantBit(uint256(x / int256(WAD)));
-
-            // The integer part of the logarithm as a signed 59.18-decimal fixed-point number. The operation can't overflow
-            // because n is maximum 255, WAD is 1e18 and sign is either 1 or -1.
-            result = int256(n) * int256(WAD);
-
-            // This is y = x * 2^(-n).
-            int256 y = x >> n;
-
-            // If y = 1, the fractional part is zero.
-            if (y == int256(WAD)) {
-                return result * sign;
-            }
-
-            // Calculate the fractional part via the iterative approximation.
-            // The "delta >>= 1" part is equivalent to "delta /= 2", but shifting bits is faster.
-            for (int256 delta = int256(WAD / 2); delta > 0; delta >>= 1) {
-                y = (y * y) / int256(WAD);
-
-                // Is y^2 > 2 and so in the range [2,4)?
-                if (y >= 2 * int256(WAD)) {
-                    // Add the 2^(-m) factor to the logarithm.
-                    result += delta;
-
-                    // Corresponds to z/2 on Wikipedia.
-                    y >>= 1;
-                }
-            }
-            result *= sign;
-        }
-    }
 }

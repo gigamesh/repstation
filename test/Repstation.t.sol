@@ -3,6 +3,8 @@ pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
 import "../src/Repstation.sol";
+import {sd} from "@prb/math/SD59x18.sol";
+import {intoInt256} from "@prb/math/sd59x18/Casting.sol";
 import {SchemaRegistry} from "eas/SchemaRegistry.sol";
 import {ISchemaResolver} from "eas/resolver/ISchemaResolver.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
@@ -131,17 +133,14 @@ contract RepstationTest is Test {
     // Correctly calculates decayed rep
     function testDecayedRep() public {
         uint256 initialRep = repstation.accountInfo(genesisAccounts[0]).rep;
+        uint256 createdAt = repstation
+            .accountInfo(genesisAccounts[0])
+            .createdAt;
         assertEq(initialRep, MAX_REP);
 
         console.log("initialRep", initialRep);
 
-        vm.warp(12 days);
-
-        uint256 decayRatePerSec = repstation.repDecayRatePerSec(
-            genesisAccounts[0]
-        );
-
-        console.log("decayRatePerSec", decayRatePerSec);
+        vm.warp(createdAt + 10 days);
 
         uint256 decayedRep = repstation.rep(genesisAccounts[0]);
 
@@ -242,21 +241,35 @@ contract RepstationTest is Test {
         assertEq(decayRatePerSec, 2893472091636);
     }
 
-    function testDecay() public {
-        // uint256 cycles = 10;
-        // uint256 decayRate = 0.01; // 1% per cycle
-        // uint256 initialAmount = 1000;
+    function testMath() public {
+        uint256 secondsSinceCheckpoint = 10;
+        uint256 decayRatePerSecond = 0.01e18;
 
-        // uint256 result = uint256(
-        //     FixedPointMathLib.powWad(
-        //         2,
-        //         int256(10) * int256(FixedPointMathLib.log2(1.25e18))
+        // uint256 result = intoUint256(
+        //     pow(
+        //         PRBMathCastingUint256.intoSD59x18(2),
+        //         PRBMathCastingUint256.intoSD59x18(secondsSinceCheckpoint) *
+        //             log2(
+        //                 PRBMathCastingUint256.intoSD59x18(
+        //                     1e18 - decayRatePerSecond
+        //                 )
+        //             )
         //     )
         // );
 
-        console.log(
-            "FixedPointMathLib.log2(16e18)",
-            FixedPointMathLib.log2(16e18)
-        );
+        // console.log("result", result);
+
+        // int256 result = intoInt256(
+        //     mul(
+        //         PRBMathCastingUint256.intoSD59x18(secondsSinceCheckpoint),
+        //         log2(
+        //             PRBMathCastingUint256.intoSD59x18(1e18 - decayRatePerSecond)
+        //         )
+        //     )
+        // );
+
+        int256 result = intoInt256(mul(sd(3), sd(-5)));
+
+        assertEq(result, -15);
     }
 }
