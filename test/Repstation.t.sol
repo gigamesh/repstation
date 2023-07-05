@@ -15,23 +15,6 @@ import {FixedPointMathLib} from "solady/utils/FixedPointMathLib.sol";
 // A zero expiration represents an non-expiring attestation.
 uint64 constant NO_EXPIRATION_TIME = 0;
 
-// struct AttestationRequestData {
-//     address recipient; // The recipient of the attestation.
-//     uint64 expirationTime; // The time when the attestation expires (Unix timestamp).
-//     bool revocable; // Whether the attestation is revocable.
-//     bytes32 refUID; // The UID of the related attestation.
-//     bytes data; // Custom attestation data.
-//     uint256 value; // An explicit ETH amount to send to the resolver. This is important to prevent accidental user errors.
-// }
-
-// /**
-//  * @dev A struct representing the full arguments of the attestation request.
-//  */
-// struct AttestationRequest {
-//     bytes32 schema; // The unique identifier of the schema.
-//     AttestationRequestData data; // The arguments of the attestation request.
-// }
-
 contract RepstationTest is Test {
     EAS public eas;
     SchemaRegistry public registry;
@@ -189,11 +172,45 @@ contract RepstationTest is Test {
         );
     }
 
-    // Users can't attest if they're not registered
+    // Users can't attest if they don't have rep
+    function testAttesterHasNoRep() public {
+        bytes32 uid = registerSchema();
 
-    // Users can't make attestations about themselves
+        vm.warp(1 days);
 
-    // Users can't make more than one attestation per target account per month
+        address attester = address(69);
+
+        vm.prank(attester);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Repstation.AttesterHasNoRep.selector,
+                attester
+            )
+        );
+
+        eas.attest(
+            AttestationRequest({
+                schema: uid,
+                data: AttestationRequestData({
+                    recipient: vm.addr(1),
+                    expirationTime: NO_EXPIRATION_TIME,
+                    revocable: false,
+                    refUID: 0x0,
+                    data: new bytes(1),
+                    value: 0
+                })
+            })
+        );
+
+        assertEq(
+            repstation.accountInfo(genesisAccounts[0]).attestationCount,
+            0
+        );
+    }
+
+    // TODO: Test users can't make attestations about themselves
+
+    // TODO: Test users can't make more than one attestation per target account per month
 
     // HELPERS
     function registerSchema() internal returns (bytes32) {
@@ -278,36 +295,4 @@ contract RepstationTest is Test {
         // TODO: Investigate how to reconfigure math in repDecayRatePerSec to reduce precision loss
         assertEq(decayRatePerSec, 28935649450);
     }
-
-    // function testMath() public {
-    //     int256 secondsSinceCheckpoint = 86400;
-    //     uint256 decayRatePerSecond = 115740740740;
-
-    //     int256 result = intoInt256(
-    //         pow(
-    //             PRBMathCastingUint256.intoSD59x18(2e18),
-    //             sd(
-    //                 secondsSinceCheckpoint *
-    //                     intoInt256(
-    //                         log2(
-    //                             PRBMathCastingUint256.intoSD59x18(
-    //                                 1e18 - decayRatePerSecond
-    //                             )
-    //                         )
-    //                     )
-    //             )
-    //         )
-    //     );
-
-    //     // console.log("result", result);
-
-    //     // int256 result = secondsSinceCheckpoint *
-    //     //     intoInt256(
-    //     //         log2(
-    //     //             PRBMathCastingUint256.intoSD59x18(1e18 - decayRatePerSecond)
-    //     //         )
-    //     //     );
-
-    //     assertEq(result, 990049833177087907);
-    // }
 }
