@@ -149,8 +149,15 @@ contract RepstationTest is Test {
 
         decayedRep = repstation.rep(genesisAccounts[0]);
 
-        // After 10 days, rep has decayed by ~9.5% (1% compounded daily)
+        // After 10 days, rep has decayed to ~90.5
         assertEq(decayedRep, 904837412807540732000);
+
+        vm.warp(createdAt + 500 days);
+
+        decayedRep = repstation.rep(genesisAccounts[0]);
+
+        // After 500 days, rep has decayed to ~6
+        assertEq(decayedRep, 6737945052392980000);
     }
 
     // Returns correct attestationCount
