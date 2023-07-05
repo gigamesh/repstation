@@ -156,11 +156,38 @@ contract RepstationTest is Test {
 
         decayedRep = repstation.rep(genesisAccounts[0]);
 
-        // After 500 days, rep has decayed to ~6
+        // After 500 days, rep has decayed to ~6.7
         assertEq(decayedRep, 6737945052392980000);
     }
 
     // Returns correct attestationCount
+    function testAttestationCount() public {
+        bytes32 uid = registerSchema();
+
+        vm.warp(1 days);
+
+        for (uint256 i; i < 69; i++) {
+            vm.prank(genesisAccounts[0]);
+            eas.attest(
+                AttestationRequest({
+                    schema: uid,
+                    data: AttestationRequestData({
+                        recipient: vm.addr(i + 1),
+                        expirationTime: NO_EXPIRATION_TIME,
+                        revocable: false,
+                        refUID: 0x0,
+                        data: new bytes(1),
+                        value: 0
+                    })
+                })
+            );
+        }
+
+        assertEq(
+            repstation.accountInfo(genesisAccounts[0]).attestationCount,
+            69
+        );
+    }
 
     // Users can't attest if they're not registered
 
