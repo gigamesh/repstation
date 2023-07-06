@@ -153,9 +153,9 @@ contract Repstation is
 
         // Calculate rep & update Account of attested/recipient
         uint256 decayedAttestedRep = rep(attestation.recipient);
-        uint256 attestorRep = accounts[attestation.attester].rep;
+        uint256 attestorRep = rep(attestation.attester);
 
-        uint256 newRep = decayedAttestedRep + (1 * (attestorRep / 100));
+        uint256 newRep = decayedAttestedRep + attestorRep / 100;
 
         if (newRep > MAX_REP) {
             newRep = MAX_REP;
