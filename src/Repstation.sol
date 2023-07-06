@@ -31,6 +31,7 @@ contract Repstation is
     error AccessDenied();
     error InsufficientValue();
     error NotPayable();
+    error NoSelfAttestation();
 
     struct Account {
         // Reputation score
@@ -118,6 +119,10 @@ contract Repstation is
     ) internal returns (bool) {
         Account storage attester = accounts[attestation.attester];
         Account storage attested = accounts[attestation.recipient];
+
+        if (attestation.attester == attestation.recipient) {
+            revert NoSelfAttestation();
+        }
 
         // Only accounts with rep attestors can attest
         if (attester.rep == 0) {

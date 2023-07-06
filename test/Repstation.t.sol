@@ -173,7 +173,7 @@ contract RepstationTest is Test {
     }
 
     // Users can't attest if they don't have rep
-    function testAttesterHasNoRep() public {
+    function testRevertAttesterHasNoRep() public {
         bytes32 uid = registerSchema();
 
         vm.warp(1 days);
@@ -209,6 +209,33 @@ contract RepstationTest is Test {
     }
 
     // TODO: Test users can't make attestations about themselves
+    function testRevertNoSelfAttestation() public {
+        bytes32 uid = registerSchema();
+
+        vm.warp(1 days);
+
+        vm.prank(genesisAccounts[0]);
+        vm.expectRevert(Repstation.NoSelfAttestation.selector);
+
+        eas.attest(
+            AttestationRequest({
+                schema: uid,
+                data: AttestationRequestData({
+                    recipient: genesisAccounts[0],
+                    expirationTime: NO_EXPIRATION_TIME,
+                    revocable: false,
+                    refUID: 0x0,
+                    data: new bytes(1),
+                    value: 0
+                })
+            })
+        );
+
+        assertEq(
+            repstation.accountInfo(genesisAccounts[0]).attestationCount,
+            0
+        );
+    }
 
     // TODO: Test users can't make more than one attestation per target account per month
 
