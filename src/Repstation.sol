@@ -17,6 +17,10 @@ import {FixedPointMathLib} from "solady/utils/FixedPointMathLib.sol";
 /// @dev The scalar of ETH and most ERC20s.
 uint256 constant WAD = 1e18;
 
+uint32 constant RECIPIENT_RATE_LIMIT = 30 days;
+
+uint256 constant MAX_REP = 1000e18;
+
 /**
  * @title Repstation
  * @author @gigamesh
@@ -32,6 +36,7 @@ contract Repstation is
     error InsufficientValue();
     error NotPayable();
     error NoSelfAttestation();
+    error RecipientRateLimit();
 
     struct Account {
         // Reputation score
@@ -52,9 +57,6 @@ contract Repstation is
         public latestAttestations;
 
     string public constant VERSION = "0.1";
-
-    // TODO: determine if this type makes sense
-    uint256 public constant MAX_REP = 1000e18;
 
     // The global EAS contract.
     IEAS internal _eas;
@@ -129,6 +131,26 @@ contract Repstation is
             revert AttesterHasNoRep(attestation.attester);
         }
 
+        if (
+            attested.lastAttestationGivenAt + RECIPIENT_RATE_LIMIT >
+            uint32(block.timestamp)
+        ) {
+            // Check when the last attestaion was given for this attester-recipient pair
+            if (
+                latestAttestations[attestation.attester][
+                    attestation.recipient
+                ] >
+                0 &&
+                latestAttestations[attestation.attester][
+                    attestation.recipient
+                ] +
+                    RECIPIENT_RATE_LIMIT >
+                uint32(block.timestamp)
+            ) {
+                revert RecipientRateLimit();
+            }
+        }
+
         // Calculate rep & update Account of attested/recipient
         uint256 decayedAttestedRep = rep(attestation.recipient);
         uint256 attestorRep = accounts[attestation.attester].rep;
@@ -148,6 +170,9 @@ contract Repstation is
         attester.attestationCount = attester.attestationCount + 1;
         // Record timestamp of attestation
         attester.lastAttestationGivenAt = uint32(block.timestamp);
+        latestAttestations[attestation.attester][
+            attestation.recipient
+        ] = uint32(block.timestamp);
 
         return true;
     }

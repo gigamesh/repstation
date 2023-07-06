@@ -21,8 +21,6 @@ contract RepstationTest is Test {
     Repstation public repstation;
     bytes32 public schemaUid;
 
-    uint256 constant MAX_REP = 1000e18;
-
     address[] public genesisAccounts = [
         0x5B38Da6a701c568545dCfcB03FcB875f56beddC4,
         0xAb8483F64d9C6d1EcF9b849Ae677dD3315835cb2,
@@ -208,7 +206,7 @@ contract RepstationTest is Test {
         );
     }
 
-    // TODO: Test users can't make attestations about themselves
+    // Test users can't make attestations about themselves
     function testRevertNoSelfAttestation() public {
         bytes32 uid = registerSchema();
 
@@ -237,7 +235,70 @@ contract RepstationTest is Test {
         );
     }
 
-    // TODO: Test users can't make more than one attestation per target account per month
+    // Users can't make more than one attestation per target account per month
+    function testRevertRecipientRateLimit() public {
+        bytes32 uid = registerSchema();
+        uint256 createdAt = repstation
+            .accountInfo(genesisAccounts[0])
+            .createdAt;
+        address recipient = address(123);
+
+        vm.warp(createdAt + 1 days);
+
+        vm.prank(genesisAccounts[0]);
+        eas.attest(
+            AttestationRequest({
+                schema: uid,
+                data: AttestationRequestData({
+                    recipient: recipient,
+                    expirationTime: NO_EXPIRATION_TIME,
+                    revocable: false,
+                    refUID: 0x0,
+                    data: new bytes(1),
+                    value: 0
+                })
+            })
+        );
+
+        // Can't attest twice before rate limit expires
+        vm.expectRevert(Repstation.RecipientRateLimit.selector);
+        vm.prank(genesisAccounts[0]);
+        eas.attest(
+            AttestationRequest({
+                schema: uid,
+                data: AttestationRequestData({
+                    recipient: recipient,
+                    expirationTime: NO_EXPIRATION_TIME,
+                    revocable: false,
+                    refUID: 0x0,
+                    data: new bytes(1),
+                    value: 0
+                })
+            })
+        );
+
+        // Can attest after rate limit expires
+        vm.warp(createdAt + RECIPIENT_RATE_LIMIT + 1);
+        vm.prank(genesisAccounts[0]);
+        eas.attest(
+            AttestationRequest({
+                schema: uid,
+                data: AttestationRequestData({
+                    recipient: recipient,
+                    expirationTime: NO_EXPIRATION_TIME,
+                    revocable: false,
+                    refUID: 0x0,
+                    data: new bytes(1),
+                    value: 0
+                })
+            })
+        );
+
+        assertEq(
+            repstation.accountInfo(genesisAccounts[0]).attestationCount,
+            2
+        );
+    }
 
     // HELPERS
     function registerSchema() internal returns (bytes32) {
