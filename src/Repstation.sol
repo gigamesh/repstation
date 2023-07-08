@@ -116,6 +116,10 @@ contract Repstation is
         }
     }
 
+    /**
+     * @dev               Attestion callback called by EAS.
+     * @param attestation The attestation to resolve.
+     */
     function onAttest(
         Attestation calldata attestation
     ) internal returns (bool) {
@@ -155,14 +159,30 @@ contract Repstation is
         uint256 decayedAttestedRep = rep(attestation.recipient);
         uint256 attestorRep = rep(attestation.attester);
 
-        // console.log("decayedAttestedRep", decayedAttestedRep);
-        // console.log("attestorRep", attestorRep);
-        // console.log("block.timestamp", block.timestamp);
+        /*
+         * The attestation.data is not checked for validity.
+         * Given callers are permissioned (must have rep), we
+         * can assume they're making valid attestations.
+         */
+        bool isUpVote = abi.decode(attestation.data, (bool));
+        uint256 newRep;
 
-        uint256 newRep = decayedAttestedRep + attestorRep / 100;
+        if (isUpVote) {
+            newRep = decayedAttestedRep + attestorRep / 100;
 
-        if (newRep > MAX_REP) {
-            newRep = MAX_REP;
+            // Clamp to MAX_REP
+            if (newRep > MAX_REP) {
+                newRep = MAX_REP;
+            }
+        } else {
+            uint256 amountToSubtract = attestorRep / 100;
+
+            // To avoid underflow
+            if (amountToSubtract > decayedAttestedRep) {
+                newRep = 0;
+            } else {
+                newRep = decayedAttestedRep - amountToSubtract;
+            }
         }
 
         attested.rep = newRep;

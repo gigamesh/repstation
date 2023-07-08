@@ -231,7 +231,70 @@ contract RepstationTest is Test {
         assertEq(recipientRep, MAX_REP);
     }
 
-    // TODO: Correcting calculates rep decrease from negative attestations
+    function testNegativeAttestations() public {
+        bytes32 uid = registerSchema();
+
+        address recipient = genesisAccounts[0];
+
+        // Warp forward so some rep decays
+        vm.warp(60 minutes);
+
+        uint256 recipientRepBeforeAttest = repstation.rep(recipient);
+
+        vm.prank(genesisAccounts[1]);
+        eas.attest(
+            AttestationRequest({
+                schema: uid,
+                data: AttestationRequestData({
+                    recipient: recipient,
+                    expirationTime: NO_EXPIRATION_TIME,
+                    revocable: false,
+                    refUID: 0x0,
+                    data: abi.encode(false),
+                    value: 0
+                })
+            })
+        );
+
+        uint256 recipientRep = repstation.rep(recipient);
+        uint256 firstAttesterRep = repstation.rep(genesisAccounts[1]);
+
+        // If recipient has no rep and they receive an attestation from an account
+        // with max rep, they should now have 1/100th of the max.
+        assertEq(
+            recipientRep,
+            // It should be 1/100th of the attester's rep subtracted from whatever
+            // the recipient had prior to the attestation.
+            recipientRepBeforeAttest - firstAttesterRep / 100
+        );
+
+        vm.warp(30 days);
+
+        recipientRepBeforeAttest = repstation.rep(recipient);
+
+        vm.prank(genesisAccounts[2]);
+        eas.attest(
+            AttestationRequest({
+                schema: uid,
+                data: AttestationRequestData({
+                    recipient: recipient,
+                    expirationTime: NO_EXPIRATION_TIME,
+                    revocable: false,
+                    refUID: 0x0,
+                    data: abi.encode(false),
+                    value: 0
+                })
+            })
+        );
+
+        recipientRep = repstation.rep(recipient);
+        uint256 secondAttesterRep = repstation.rep(genesisAccounts[2]);
+
+        assertEq(
+            recipientRep,
+            recipientRepBeforeAttest - secondAttesterRep / 100
+        );
+    }
 
     // Returns correct attestationCount
     function testAttestationCount() public {
@@ -332,9 +395,6 @@ contract RepstationTest is Test {
     /*************************************
                     REVERTS
      ************************************/
-
-    // TODO: Test revert if attestation data is malformed
-    function testRevertInvalidData() public {}
 
     // Users can't attest if they don't have rep
     function testRevertAttesterHasNoRep() public {
