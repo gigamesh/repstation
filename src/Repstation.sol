@@ -155,6 +155,10 @@ contract Repstation is
         uint256 decayedAttestedRep = rep(attestation.recipient);
         uint256 attestorRep = rep(attestation.attester);
 
+        // console.log("decayedAttestedRep", decayedAttestedRep);
+        // console.log("attestorRep", attestorRep);
+        // console.log("block.timestamp", block.timestamp);
+
         uint256 newRep = decayedAttestedRep + attestorRep / 100;
 
         if (newRep > MAX_REP) {
@@ -162,6 +166,7 @@ contract Repstation is
         }
 
         attested.rep = newRep;
+        attested.createdAt = uint32(block.timestamp);
 
         // Making this attestion changes the decay rate of the attester, so we need
         // to store a snapshot of their current rep for future calculations
@@ -267,7 +272,7 @@ contract Repstation is
         // Attestations per day (fraction scaled to 1e18)
         uint256 attestationsPerDay = FixedPointMathLib.divWad(
             _account.attestationCount,
-            ageOfAccount
+            ageOfAccount > 0 ? ageOfAccount : 1
         ) * 1 days;
 
         // https://www.desmos.com/calculator/3rqdk2k1a6

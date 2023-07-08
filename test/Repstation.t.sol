@@ -99,7 +99,7 @@ contract RepstationTest is Test {
                     expirationTime: NO_EXPIRATION_TIME,
                     revocable: false,
                     refUID: 0x0,
-                    data: new bytes(1),
+                    data: abi.encode(true),
                     value: 0
                 })
             })
@@ -141,30 +141,94 @@ contract RepstationTest is Test {
         assertEq(decayedRep, 6737945052392980000);
     }
 
-    // TODO: Correctly calculates rep increase from positive attestions
-    function testPositiveAttest() public {
+    function testPositiveAttestOfFreshAccount() public {
         bytes32 uid = registerSchema();
 
-        vm.warp(1 days);
+        address recipient = address(123);
 
         vm.prank(genesisAccounts[0]);
         eas.attest(
             AttestationRequest({
                 schema: uid,
                 data: AttestationRequestData({
-                    recipient: genesisAccounts[1],
+                    recipient: recipient,
                     expirationTime: NO_EXPIRATION_TIME,
                     revocable: false,
                     refUID: 0x0,
-                    data: new bytes(1),
+                    data: abi.encode(true),
                     value: 0
                 })
             })
         );
 
-        uint256 rep = repstation.rep(genesisAccounts[0]);
+        uint256 recipientRep = repstation.rep(recipient);
+        uint256 firstAttesterRep = repstation.rep(genesisAccounts[0]);
 
-        assertEq(rep, 1000000000000000000000);
+        // If recipient has no rep and they receive an attestation from an account
+        // with max rep, they should now have 1/100th of the max.
+        assertEq(firstAttesterRep, MAX_REP);
+        assertEq(recipientRep, firstAttesterRep / 100);
+
+        vm.warp(30 days);
+
+        uint256 recipientRepBeforeAttest = repstation.rep(recipient);
+
+        vm.prank(genesisAccounts[1]);
+        eas.attest(
+            AttestationRequest({
+                schema: uid,
+                data: AttestationRequestData({
+                    recipient: recipient,
+                    expirationTime: NO_EXPIRATION_TIME,
+                    revocable: false,
+                    refUID: 0x0,
+                    data: abi.encode(true),
+                    value: 0
+                })
+            })
+        );
+
+        recipientRep = repstation.rep(recipient);
+        uint256 secondAttesterRep = repstation.rep(genesisAccounts[1]);
+
+        assertEq(
+            recipientRep,
+            // It should be 1/100th of the attester's rep added to whatever
+            // the recipient had prior to the attestation.
+            recipientRepBeforeAttest + secondAttesterRep / 100
+        );
+    }
+
+    function testPositiveAttestOfHighRepAccount() public {
+        bytes32 uid = registerSchema();
+
+        address recipient = genesisAccounts[1];
+
+        // Less than 1% will have decayed after an hour,
+        // so giving an attestation from an account with almost the max rep
+        // will bring the recipient's rep to the max.
+        vm.warp(60 minutes);
+
+        vm.prank(genesisAccounts[0]);
+        eas.attest(
+            AttestationRequest({
+                schema: uid,
+                data: AttestationRequestData({
+                    recipient: recipient,
+                    expirationTime: NO_EXPIRATION_TIME,
+                    revocable: false,
+                    refUID: 0x0,
+                    data: abi.encode(true),
+                    value: 0
+                })
+            })
+        );
+
+        uint256 recipientRep = repstation.rep(recipient);
+
+        // If the recipient's new rep amount would have exceeded the max rep,
+        // they should now have the max.
+        assertEq(recipientRep, MAX_REP);
     }
 
     // TODO: Correcting calculates rep decrease from negative attestations
@@ -185,7 +249,7 @@ contract RepstationTest is Test {
                         expirationTime: NO_EXPIRATION_TIME,
                         revocable: false,
                         refUID: 0x0,
-                        data: new bytes(1),
+                        data: abi.encode(true),
                         value: 0
                     })
                 })
@@ -225,7 +289,7 @@ contract RepstationTest is Test {
                     expirationTime: NO_EXPIRATION_TIME,
                     revocable: false,
                     refUID: 0x0,
-                    data: new bytes(1),
+                    data: abi.encode(true),
                     value: 0
                 })
             })
@@ -249,7 +313,7 @@ contract RepstationTest is Test {
                     expirationTime: NO_EXPIRATION_TIME,
                     revocable: false,
                     refUID: 0x0,
-                    data: new bytes(1),
+                    data: abi.encode(true),
                     value: 0
                 })
             })
@@ -266,7 +330,7 @@ contract RepstationTest is Test {
     }
 
     /*************************************
-                    REVERTS 
+                    REVERTS
      ************************************/
 
     // TODO: Test revert if attestation data is malformed
@@ -296,7 +360,7 @@ contract RepstationTest is Test {
                     expirationTime: NO_EXPIRATION_TIME,
                     revocable: false,
                     refUID: 0x0,
-                    data: new bytes(1),
+                    data: abi.encode(true),
                     value: 0
                 })
             })
@@ -325,7 +389,7 @@ contract RepstationTest is Test {
                     expirationTime: NO_EXPIRATION_TIME,
                     revocable: false,
                     refUID: 0x0,
-                    data: new bytes(1),
+                    data: abi.encode(true),
                     value: 0
                 })
             })
@@ -356,7 +420,7 @@ contract RepstationTest is Test {
                     expirationTime: NO_EXPIRATION_TIME,
                     revocable: false,
                     refUID: 0x0,
-                    data: new bytes(1),
+                    data: abi.encode(true),
                     value: 0
                 })
             })
@@ -373,7 +437,7 @@ contract RepstationTest is Test {
                     expirationTime: NO_EXPIRATION_TIME,
                     revocable: false,
                     refUID: 0x0,
-                    data: new bytes(1),
+                    data: abi.encode(true),
                     value: 0
                 })
             })
@@ -390,7 +454,7 @@ contract RepstationTest is Test {
                     expirationTime: NO_EXPIRATION_TIME,
                     revocable: false,
                     refUID: 0x0,
-                    data: new bytes(1),
+                    data: abi.encode(true),
                     value: 0
                 })
             })
