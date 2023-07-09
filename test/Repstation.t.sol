@@ -296,6 +296,55 @@ contract RepstationTest is Test {
         );
     }
 
+    function testRepDoesntGoBelowZero() public {
+        bytes32 uid = registerSchema();
+
+        address accountWithLowRep = address(123);
+
+        // Give positive attestation
+        vm.prank(genesisAccounts[1]);
+        eas.attest(
+            AttestationRequest({
+                schema: uid,
+                data: AttestationRequestData({
+                    recipient: accountWithLowRep,
+                    expirationTime: NO_EXPIRATION_TIME,
+                    revocable: false,
+                    refUID: 0x0,
+                    data: abi.encode(true),
+                    value: 0
+                })
+            })
+        );
+
+        vm.warp(1 days);
+
+        uint256 recipientRep = repstation.rep(accountWithLowRep);
+
+        assert(recipientRep > 0);
+
+        // Give negative attestation after some time passes
+        // This should bring the recipient's rep to 0
+        vm.prank(genesisAccounts[2]);
+        eas.attest(
+            AttestationRequest({
+                schema: uid,
+                data: AttestationRequestData({
+                    recipient: accountWithLowRep,
+                    expirationTime: NO_EXPIRATION_TIME,
+                    revocable: false,
+                    refUID: 0x0,
+                    data: abi.encode(false),
+                    value: 0
+                })
+            })
+        );
+
+        recipientRep = repstation.rep(accountWithLowRep);
+
+        assertEq(recipientRep, 0);
+    }
+
     // Returns correct attestationCount
     function testAttestationCount() public {
         bytes32 uid = registerSchema();

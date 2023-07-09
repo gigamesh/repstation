@@ -23,8 +23,8 @@ Key features:
 - Attestations are a simple up or down vote on any target account.
 - Rep increases from receiving positive attestations, scaled by the rep of the attester.
 - Rep decreases from receiving negative attestations, scaled by the rep of the attester.
-- Accounts can't make attestations about their own address.
-- TBD: A penalty mechanism or throttle that prevents making attestations about the same account too frequently (to limit sybil attacks & other abuse)
+- Rep holders can't make attestations about their own address.
+- Rep holders can't make more than one attestation per month about the same account.
 
 ## Contracts
 
