@@ -41,7 +41,7 @@ Key features:
 - Anyone with rep can make a proposal, but a quorum of TBD% of accounts is required to vote in order for the election to be considered valid.
 
 ## Roadmap
-- [ ] Repstation.sol & tests
+- [x] Repstation.sol & tests
 - [ ] Agent modeling to determine optimal parameters
 - [ ] [Frontend](https://github.com/gigamesh/ourspace) that enables users to flex their social capital.
 - [ ] Deploy to Optimism goerli.
